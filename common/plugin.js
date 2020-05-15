@@ -27,8 +27,8 @@ exports.initPlugins = function (plugins, type) {
       const { server, client } = require(realPath);
 
       return {
+        ...fullItem,
         enable,
-        name,
         realPath,
         server,
         client,
