@@ -21,44 +21,35 @@ var compressPlugin = new CompressionPlugin({
   minRatio: 0.8
 });
 
-function createScript(plugin, pathAlias) {
-  let options = plugin.options ? JSON.stringify(plugin.options) : null;
-  if (pathAlias === 'node_modules') {
-    return `"${plugin.name}" : {module: require('yapi-plugin-${
-      plugin.name
-    }/client.js'),options: ${options}}`;
-  }
-  return `"${plugin.name}" : {module: require('${pathAlias}/yapi-plugin-${
-    plugin.name
-  }/client.js'),options: ${options}}`;
-}
+// initPlugins
+(() => {
+  const scripts = [];
 
-function initPlugins(configPlugin) {
-  configPlugin = require('../config.json').plugins;
-  var systemConfigPlugin = require('./common/config.js').exts;
+  const configPlugin = require('../config.json').plugins;
+  const systemConfigPlugin = require('./common/config.js').exts;
 
-  var scripts = [];
-  if (configPlugin && Array.isArray(configPlugin) && configPlugin.length) {
-    configPlugin = commonLib.initPlugins(configPlugin, 'plugin');
-    configPlugin.forEach(plugin => {
-      if (plugin.client && plugin.enable) {
-        scripts.push(createScript(plugin, 'node_modules'));
-      }
-    });
-  }
-
-  systemConfigPlugin = commonLib.initPlugins(systemConfigPlugin, 'ext');
-  systemConfigPlugin.forEach(plugin => {
-    if (plugin.client && plugin.enable) {
-      scripts.push(createScript(plugin, 'exts'));
+  const aliasList = [];
+  commonLib.initPlugins(configPlugin).concat(
+    commonLib.initPlugins(systemConfigPlugin, 'ext')
+  ).forEach(({ name, client, enable, realPath, options, alias }) => {
+    if (client && enable) {
+      const _name = JSON.stringify(name);
+      const _path = JSON.stringify(
+        alias
+          ? `${ name }/client.js`
+          : path.join(realPath, 'client.js')
+      );
+      const _options = JSON.stringify(options||{});
+      scripts.push(`${_name}:{module: require(${_path}), options: ${_options}}`);
     }
   });
 
-  scripts = 'module.exports = {' + scripts.join(',') + '}';
-  fs.writeFileSync('client/plugin-module.js', scripts);
-}
+  fs.writeFileSync(
+    'client/plugin-module.js',
+    'module.exports = {' + scripts.join(',\n') + '}',
+  );
+})();
 
-initPlugins();
 
 module.exports = {
   plugins: [

@@ -18,6 +18,15 @@ var hooks = {
     listener: null
   },
   /**
+   * 第三方sso登录头像钩子，暂只支持设置一个
+   * @param { username, email }
+   * @return 必需返回一个 promise 对象，resolve({ url: '' })
+   */
+  third_login_avatar: {
+    type: 'single',
+    listener: null
+  },
+  /**
    * 客户端增加接口成功后触发
    * @param data 接口的详细信息
    */
@@ -96,9 +105,9 @@ var hooks = {
      *  projectData: project,
         interfaceData: interfaceData,
         ctx: ctx,
-        mockJson: res 
+        mockJson: res
      * }
-     * 
+     *
      */
   export_markdown: {
     type: 'multi',
@@ -111,9 +120,9 @@ var hooks = {
      *  projectData: project,
         interfaceData: interfaceData,
         ctx: ctx,
-        mockJson: res 
+        mockJson: res
      * }
-     * 
+     *
      */
   mock_after: {
     type: 'multi',
@@ -179,7 +188,7 @@ var hooks = {
 
   /**
    * addNoticePlugin(config)
-   * 
+   *
    * config.weixin = {
    *    title: 'wechat',
    *    hander: (emails, title, content)=> {...}
@@ -232,40 +241,10 @@ yapi.bindHook = bindHook;
 yapi.emitHook = emitHook;
 yapi.emitHookSync = emitHook;
 
-let pluginsConfig = initPlugins(yapi.WEBCONFIG.plugins, 'plugin');
-pluginsConfig.forEach(plugin => {
-  if (!plugin || plugin.enable === false || plugin.server === false) return null;
-
-  if (
-    !yapi.commons.fileExist(
-      yapi.path.join(plugin_path, 'yapi-plugin-' + plugin.name + '/server.js')
-    )
-  ) {
-    throw new Error(`config.json配置了插件${plugin},但plugins目录没有找到此插件，请安装此插件`);
-  }
-  let pluginModule = require(yapi.path.join(
-    plugin_path,
-    'yapi-plugin-' + plugin.name + '/server.js'
-  ));
-  pluginModule.call(yapi, plugin.options);
-});
-
-extConfig = initPlugins(extConfig, 'ext');
-
-extConfig.forEach(plugin => {
-  if (!plugin || plugin.enable === false || plugin.server === false) return null;
-
-  if (
-    !yapi.commons.fileExist(
-      yapi.path.join(plugin_system_path, 'yapi-plugin-' + plugin.name + '/server.js')
-    )
-  ) {
-    throw new Error(`config.json配置了插件${plugin},但plugins目录没有找到此插件，请安装此插件`);
-  }
-  let pluginModule = require(yapi.path.join(
-    plugin_system_path,
-    'yapi-plugin-' + plugin.name + '/server.js'
-  ));
+initPlugins(yapi.WEBCONFIG.plugins, 'plugin').concat(initPlugins(extConfig, 'ext')).forEach(plugin => {
+  const { enable = true, server, realPath } = plugin || {};
+  if (!enable || !server) return null;
+  let pluginModule = require(`${realPath}/server.js`);
   pluginModule.call(yapi, plugin.options);
 });
 

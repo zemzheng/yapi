@@ -591,11 +591,21 @@ class userController extends baseController {
 
   async avatar(ctx) {
     try {
-      let uid = ctx.query.uid ? ctx.query.uid : this.getUid();
-      let avatarInst = yapi.getInst(avatarModel);
-      let data = await avatarInst.get(uid);
+      const { uid = this.getUid() } = ctx.query;
+      const avatarInst = yapi.getInst(avatarModel);
+      const data = await avatarInst.get(uid);
       let dataBuffer, type;
       if (!data || !data.basecode) {
+        const userInst = yapi.getInst(userModel);
+        const result = await userInst.findById(uid);
+        const userAvatarInfo = await yapi.emitHook('third_login_avatar', result);
+        const { url } = userAvatarInfo || {};
+        if (url) {
+          ctx.redirect(url);
+          return;
+        }
+
+
         dataBuffer = yapi.fs.readFileSync(yapi.path.join(yapi.WEBROOT, 'static/image/avatar.png'));
         type = 'image/png';
       } else {
